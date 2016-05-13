@@ -771,13 +771,6 @@ void AddTokenToOffset( const CToken& token, size_t& offset )
 		cout << offset << " " << token.Text << endl;
 #endif
 		offset += token.Text.length();
-#ifdef WIN32
-		for( auto j = token.Text.cbegin(); j != token.Text.cend(); ++j ) {
-			if( *j == '\n' ) {
-				offset++;
-			}
-		}
-#endif
 	}
 }
 
