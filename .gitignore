@@ -1,5 +1,6 @@
 ## Ignore build results
 build
+*.exe
 
 ## Ignore Visual Studio temporary files
 # User-specific files
