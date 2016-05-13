@@ -1,5 +1,8 @@
 ## Ignore build results
 build
+CRF++-0.58
+train-texts
+test-texts
 *.exe
 
 ## Ignore Visual Studio temporary files
