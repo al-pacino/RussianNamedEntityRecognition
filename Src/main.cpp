@@ -11,6 +11,11 @@
 #include <unordered_set>
 #include <unordered_map>
 
+#ifdef _WIN32
+#include <Windows.h>
+#undef GetObject // conflicts with rapidjson
+#endif
+
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>
 
@@ -820,11 +825,6 @@ void ReadAnswer( const string& answerFileName, CTokens& tokens )
 		} while( offset < i->second.first );
 	}
 }
-
-#ifdef _WIN32
-#include <Windows.h>
-#undef GetObject // conflicts with rapidjson
-#endif
 
 string GetPath( const string& filename )
 {
