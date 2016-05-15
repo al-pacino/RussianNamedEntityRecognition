@@ -39,6 +39,7 @@ Remarks
 A trained model file (model.crf-model) exists in root of the repository.
 
 After running you should have 5 new files for all source text files in the test-texts directory:
+
 1. *.txt.cp1251 - the file contains source text in cp1251 encoding
 2. *.txt.cp1251.json - the file contains the result of processing source text in cp1251 encoding by mystem analyzer
 3. *.txt.cp1251.json.signs - the file contains signs which have been extracted by main program
