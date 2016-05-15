@@ -73,7 +73,7 @@ with open( target_train_file, 'w' ) as file:
 				stem_file( name )
 				name += '.json'
 				save_tokens_to_ann( texts_path + filename[:-4] + '.spans', name )
-				call_main_program( ['--prepare_train_file', name, \
+				call_main_program( ['--prepare-train-file', name, \
 					name + '.ann'],	name + '.signs' )
 				# save all .sings to target_train_file
 				print( train_file_line_before_signs_file, file=file )

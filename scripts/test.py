@@ -44,8 +44,8 @@ for ( dirpath, dirnames, filenames ) in walk( texts_path ):
 			save_file_in_cp1251( name )
 			name += '.cp1251'
 			stem_file( name )
-			call_main_program( ['--prepare_test_file', name + '.json'], \
+			call_main_program( ['--prepare-test-file', name + '.json'], \
 				name + '.json.signs' )
 			test_file( name + '.json.signs' )
-			call_main_program( ['--prepare_answer_file', name + '.json', \
+			call_main_program( ['--prepare-answer-file', name + '.json', \
 				name + '.json.signs.crf-test'], name + '.answer' )

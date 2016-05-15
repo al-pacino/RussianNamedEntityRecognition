@@ -906,14 +906,14 @@ struct StartupMode {
 };
 
 const StartupMode StartupModes[] = {
-	{ "--prepare_test_file", 3, PrepareTestFile,
-		"--prepare_test_file TEXT_JSON_FILE" },
+	{ "--prepare-test-file", 3, PrepareTestFile,
+		"--prepare-test-file TEXT_JSON_FILE" },
 
-	{ "--prepare_train_file", 4, PrepareTrainFile,
-		"--prepare_train_file TEXT_JSON_FILE TEXT_ANN_FILE" },
+	{ "--prepare-train-file", 4, PrepareTrainFile,
+		"--prepare-train-file TEXT_JSON_FILE TEXT_ANN_FILE" },
 
-	{ "--prepare_answer_file", 4, PrepareAnswerFile,
-		"--prepare_answer_file TEXT_JSON_FILE CRF_TESTED_FILE" },
+	{ "--prepare-answer-file", 4, PrepareAnswerFile,
+		"--prepare-answer-file TEXT_JSON_FILE CRF_TESTED_FILE" },
 
 	{ nullptr, -1, nullptr, nullptr }
 };
