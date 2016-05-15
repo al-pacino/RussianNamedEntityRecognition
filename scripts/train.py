@@ -11,11 +11,14 @@ target_train_file = '../train-texts.cp1251.signs'
 mystem_path = "../mystem"
 mystem_flags = "-ncisd"
 main_program_path = "../NamedEntityRecognition"
-main_program_tokens_arg = "--tokens"
 train_file_line_before_signs_file = \
 	'begin-of-file	begin-of-file	NO	NO	L1	begin-of-file	NO	NO	NO	NO	NO	NO	NO	YES	NO	R0	NO	NO'
 train_file_line_after_signs_file = \
 	'end-of-file	end-of-file	NO	NO	L1	end-of-file	NO	NO	NO	NO	NO	NO	NO	YES	NO	R0	NO	NO'
+
+def call_main_program( args, output_filename ):
+	with open( output_filename, 'wb' ) as file:
+		call( [main_program_path] + args, stdout=file )
 
 def save_file_in_cp1251( name ):
 	try:
@@ -30,10 +33,6 @@ def stem_file( name ):
 		return
 	call([mystem_path, mystem_flags, "--eng-gr", "-e", "cp1251",
 		"--format", "json", name, name + '.json' ])
-		
-def signs_file( name ):
-	with open( name + '.signs', 'wb' ) as file:
-		call( [main_program_path, name, name + '.ann'], stdout=file )
 
 def save_tokens_to_ann( filename, ann_filename ):
 	with open( ann_filename + '.ann', 'w' ) as file:
@@ -74,7 +73,8 @@ with open( target_train_file, 'w' ) as file:
 				stem_file( name )
 				name += '.json'
 				save_tokens_to_ann( texts_path + filename[:-4] + '.spans', name )
-				signs_file( name )
+				call_main_program( ['--prepare_train_file', name, \
+					name + '.ann'],	name + '.signs' )
 				# save all .sings to target_train_file
 				print( train_file_line_before_signs_file, file=file )
 				print( train_file_line_before_signs_file, file=file )

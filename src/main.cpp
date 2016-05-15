@@ -23,6 +23,11 @@ using namespace std;
 
 //-----------------------------------------------------------------------------
 
+const char* const AuxFileRelativePath =
+	"lowercase-cp1251-aux-files/lowercase-cp1251-";
+
+//-----------------------------------------------------------------------------
+
 class CException {
 public:
 	CException( const string& _message = "" ) :
@@ -835,73 +840,148 @@ string GetPath( const string& filename )
 	return "./";
 }
 
+//------------------------------------------------------------------------------
+
+void PrepareSigns( const string& auxFilesPath, const CTokens& tokens )
+{
+	// intialize token signs
+	CSigns signs;
+	InitializeSigns( signs, auxFilesPath );
+
+	for( auto i = tokens.cbegin(); i != tokens.cend(); ++i ) {
+		assert( i->Type != TT_None );
+		if( i->Type == TT_Text ) {
+			continue;
+		}
+		string line;
+		signs.Apply( *i, line );
+		cout << line << endl;
+	}
+}
+
+//------------------------------------------------------------------------------
+
+void PrepareTestFile( const char* argv[] )
+{
+	CTokens tokens;
+	ReadTokens( argv[2], tokens );
+	PrepareSigns( GetPath( argv[0] ) + AuxFileRelativePath, tokens );
+}
+
+//------------------------------------------------------------------------------
+
+void PrepareTrainFile( const char* argv[] )
+{
+	CTokens tokens;
+	ReadTokens( argv[2], tokens );
+	ReadAnswer( argv[3], tokens );
+	PrepareSigns( GetPath( argv[0] ) + AuxFileRelativePath, tokens );
+}
+
+//------------------------------------------------------------------------------
+
+void PrepareAnswerFile( const char* argv[] )
+{
+	CTokens tokens;
+	ReadTokens( argv[2], tokens );
+	size_t offset = 0;
+	for( auto i = tokens.begin(); i != tokens.end(); ++i ) {
+		if( IsWordOrMark( i->Type ) ) {
+			cout << offset << "\t" << i->Text.length() << "\t"
+				<< i->Text << endl;
+		}
+		AddTokenToOffset( *i, offset );
+	}
+}
+
+//------------------------------------------------------------------------------
+
+typedef void ( *StartupFunctionPtr )( const char* argv[] );
+
+struct StartupMode {
+	const char* FirstArgument;
+	int NumberOfArguments;
+	StartupFunctionPtr StartupFunction;
+	const char* HelpString;
+};
+
+const StartupMode StartupModes[] = {
+	{ "--prepare_test_file", 3, PrepareTestFile,
+		"--prepare_test_file TEXT_JSON_FILE" },
+
+	{ "--prepare_train_file", 4, PrepareTrainFile,
+		"--prepare_train_file TEXT_JSON_FILE TEXT_ANN_FILE" },
+
+	{ "--prepare_answer_file", 4, PrepareAnswerFile,
+		"--prepare_answer_file TEXT_JSON_FILE CRF_TESTED_FILE" },
+
+	{ nullptr, -1, nullptr, nullptr }
+};
+
+//------------------------------------------------------------------------------
+
+void PrintUsage()
+{
+	cerr << "Usage: NamedEntityRecognition" << endl;
+	cerr << endl;
+	for( int i = 0; StartupModes[i].FirstArgument != nullptr; i++ ) {
+		assert( StartupModes[i].HelpString != nullptr );
+		if( i > 0 ) {
+			cerr << "OR" << endl;
+		}
+		cerr << "  " << StartupModes[i].HelpString << endl;
+	}
+	cerr << endl;
+}
+
+//------------------------------------------------------------------------------
+
+bool Run( int argc, const char* argv[] )
+{
+	int startupMode = -1;
+	if( argc >= 2 ) {
+		const string firstArgument( argv[1] );
+
+		for( int i = 0; StartupModes[i].FirstArgument != nullptr; i++ ) {
+			if( firstArgument == StartupModes[i].FirstArgument ) {
+				if( argc == StartupModes[i].NumberOfArguments ) {
+					startupMode = i;
+				}
+				break;
+			}
+		}
+	}
+
+	if( startupMode != -1 ) {
+		StartupModes[startupMode].StartupFunction( argv );
+		return true;
+	}
+
+	PrintUsage();
+	return false;
+}
+
+//------------------------------------------------------------------------------
+
 int main( int argc, const char* argv[] )
 {
 #if defined( WIN32 ) && defined( _DEBUG )
 	system( "chcp 1251" );
 #endif
+
+	bool success = false;
+
 	try {
-		if( argc < 2 || argc > 3 ) {
-			cerr << "Usage: tml-ner TEXT_FILE [ANSWER_FILE]" << endl;
-			throw new CException( "Wrong arguments" );
-		}
-
-		bool isItTrain = false;
-		const char* textFileName = 0;
-		const char* answerFileName = 0;
-
-		if( argc >= 2 ) {
-			textFileName = argv[1];
-		}
-		if( argc >= 3 ) {
-			isItTrain = true;
-			answerFileName = argv[2];
-		}
-
-		CTokens tokens;
-		ReadTokens( textFileName, tokens );
-
-		if( isItTrain && string( answerFileName ) == "--tokens" ) {
-			size_t offset = 0;
-			for( auto i = tokens.begin(); i != tokens.end(); ++i ) {
-				if( IsWordOrMark( i->Type ) ) {
-					cout << offset << "\t" << i->Text.length() << "\t"
-						<< i->Text << endl;
-				}
-				AddTokenToOffset( *i, offset );
-			}
-			return 0;
-		}
-
-		if( isItTrain ) {
-			ReadAnswer( answerFileName, tokens );
-		}
-
-		// intialize token signs
-		CSigns signs;
-		InitializeSigns( signs, GetPath( argv[0] )
-			+ "lowercase-cp1251-aux-files/lowercase-cp1251-" );
-
-		for( auto i = tokens.cbegin(); i != tokens.cend(); ++i ) {
-			assert( i->Type != TT_None );
-			if( i->Type == TT_Text ) {
-				continue;
-			}
-			string line;
-			signs.Apply( *i, line );
-			cout << line << endl;
-		}
+		success = Run( argc, argv );
 	} catch( CException* e ) {
 		cerr << "Error: " << e->Message() << endl;
 		e->Delete();
-		return 1;
 	} catch( exception& e ) {
 		cerr << "Error: std::exception: " << e.what() << endl;
-		return 1;
 	} catch( ... ) {
 		cerr << "Error: Unhandled exception" << endl;
-		return 1;
 	}
-	return 0;
+
+	return ( success ? 1 : 0 );
 }
 
