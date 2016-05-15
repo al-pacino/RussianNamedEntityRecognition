@@ -1240,6 +1240,6 @@ int main( int argc, const char* argv[] )
 		cerr << "Error: Unhandled exception" << endl;
 	}
 
-	return ( success ? 1 : 0 );
+	return ( success ? 0 : 1 );
 }
 
