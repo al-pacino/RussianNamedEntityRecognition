@@ -5,6 +5,9 @@ train-texts
 test-texts
 *.exe
 
+## Ignore train results
+*.signs
+
 ## Ignore Visual Studio temporary files
 # User-specific files
 *.suo
