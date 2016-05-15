@@ -1,4 +1,4 @@
-RussianNamedEntityRecognition
+﻿RussianNamedEntityRecognition
 =============================
 
 Installation
@@ -36,24 +36,20 @@ unzip test-texts.zip
 Remarks
 =======
 
-После запуска ./test.py в каталоге test долно появиться по 5 новых файлов для каждого файла вида xxx.txt, содержащего исходный текст:
-1. xxx.txt.cp1251 - Файл содержит текст исходного файла в кодировке cp1251
-2. xxx.txt.cp1251.json - Файл содержит результат обработки файла в кодировке cp1251 анализатором mystem
-3. xxx.txt.cp1251.json.signs - Файл содержит признаки выделенные для слов файла основной программой
-4. xxx.txt.cp1251.json.signs.crf-test - Файл содержит результат применения crf_test к xxx.txt.cp1251.json.signs
-5. xxx.txt.cp1251.answer - Файл содержит выделеннные именованные сущности из текста (в кодировке cp1251)
+A trained model file (model.crf-model) exists in root of the repository.
 
-Файл ответа состоит из строк вида:
-тип_именованной_сущности <пробел>
-смещение_отностельно_начала_текстового_файла <пробел> длина_именованной_сущности_в_байтах <пробел>
-#{текст_именованной_сущности}
+After running you should have 5 new files for all source text files in the test-texts directory:
+1. *.txt.cp1251 - the file contains source text in cp1251 encoding
+2. *.txt.cp1251.json - the file contains the result of processing source text in cp1251 encoding by mystem analyzer
+3. *.txt.cp1251.json.signs - the file contains signs which have been extracted by main program
+4. *.txt.cp1251.json.signs.crf-test - the file contains the result of application crf_test to *.txt.cp1251.json.signs
+5. *.txt.cp1251.answer - the file contains named entities which have been extracted by main program
 
-Пример содержимого файла ответа:
-ORG 42 14 #{Милли Меджлиса}
-PER 44 15 #{Айдын Мирзазаде}
-ORG 80 7 #{Росбалт}
-LOC 93 6 #{Москве}
-ORG 122 18 #{Нагорного Карабаха}
-ORG 138 3 #{МИД}
+Each line of an answer file has the structure:
+TYPE <one-space> OFFSET <one-space> LENGTH <one-space> #{TEXT}
 
-В корне репозитория есть файл обученной модели model.crf-model
+Where:
+- TYPE is one of three named entity types: ORG (organization), LOC (location), PER (person);
+- OFFSET is offset in bytes from the beginning of the file;
+- LENGTH is length of the text of the named entity;
+- TEXT is text of the named entity;
