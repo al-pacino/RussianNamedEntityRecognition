@@ -1018,18 +1018,20 @@ bool CConcatenator::parseLine( const string& line, string& text,
 
 void CConcatenator::addToken( const string& text, TNamedEntityType type )
 {
+	while( token != tokens.cend() && !IsWordOrMark( token->Type ) ) {
+		AddTokenToOffset( *token, offset );
+		++token;
+	}
+
 	assert( token != tokens.cend() );
 	assert( IsWordOrMark( token->Type ) );
+
 	if( text != token->Text ) {
 		throw new CException( "Json or tested file(s) is(are) corrupted" );
 	}
 
 	( this->*state )( type );
-
-	do {
-		AddTokenToOffset( *token, offset );
-		++token;
-	} while( token != tokens.cend() && !IsWordOrMark( token->Type ) );
+	++token;
 }
 
 bool CConcatenator::isSimpleDot() const
