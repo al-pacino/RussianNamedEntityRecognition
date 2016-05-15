@@ -566,7 +566,7 @@ CFileSign::CFileSign( const string& fileName )
 		}
 	}
 	if( words.empty() ) {
-		throw new CException( "File '" + fileName + "' is empty!" );
+		throw new CException( "File '" + fileName + "' is empty" );
 	}
 }
 
@@ -777,9 +777,7 @@ void AddTokenToOffset( const CToken& token, size_t& offset )
 {
 	assert( token.Type != TT_None );
 	if( !IsMark( token.Type ) ) {
-#ifdef _DEBUG
-		cout << offset << " " << token.Text << endl;
-#endif
+		//cout << offset << " " << token.Text << endl;
 		offset += token.Text.length();
 	}
 }
@@ -842,6 +840,270 @@ string GetPath( const string& filename )
 
 //------------------------------------------------------------------------------
 
+// Concatenation rules:
+// - Токены с одинаковыми метками не прерывающиеся знаками препинания (кроме точки, которая не конец предложения) склеиваем в один.
+// - Если встретился шаблон: ORG LOC, то соединяем в ORG.
+// - Если встретился шаблон: ORG имени(им.) PER, то соединяем в ORG.
+class CConcatenator {
+public:
+	static void Concatenate( const string& crfTestedFilename,
+		const CTokens& tokens, ostream& output );
+
+private:
+	CConcatenator( const string& crfTestedFilename,
+		const CTokens& tokens, ostream& ouput );
+
+	void startNe( TNamedEntityType type );
+	void endNe( TNamedEntityType type, bool ignoreLastWord = false );
+	bool parseLine( const string& line, string& text,
+		TNamedEntityType& type ) const;
+	void addToken( const string& token, TNamedEntityType type );
+	bool isSimpleDot() const;
+
+	typedef void ( CConcatenator::*TState )( TNamedEntityType type );
+
+	void stateNone( TNamedEntityType type );
+	void stateOrg( TNamedEntityType type );
+	void stateOrgIm( TNamedEntityType type );
+	void stateOrgImeny( TNamedEntityType type );
+	void stateOrgImenyPerson( TNamedEntityType type );
+	void stateLoc( TNamedEntityType type );
+	void statePerson( TNamedEntityType type );
+
+	ifstream input;
+	ostream& output;
+	const CTokens& tokens;
+	size_t offset;
+	CTokens::const_iterator token;
+	size_t neOffset;
+	CTokens::const_iterator neToken;
+
+	TState state;
+};
+
+void CConcatenator::Concatenate( const string& crfTestedFilename,
+		const CTokens& tokens, ostream& output )
+{
+	CConcatenator concatenate( crfTestedFilename, tokens, output );
+}
+
+CConcatenator::CConcatenator( const string& crfTestedFilename,
+		const CTokens& _tokens, ostream& _output ):
+	input( crfTestedFilename, ios::in ),
+	output( _output ),
+	tokens( _tokens ),
+	offset( 0 ),
+	token( tokens.cbegin() ),
+	neOffset( 0 ),
+	neToken( tokens.cend() ),
+	state( &CConcatenator::stateNone )
+{
+	if( !input.good() ) {
+		throw new CException( "Crf tested file '"
+			+ crfTestedFilename + "' not found" );
+	}
+
+	string line;
+	string text;
+	TNamedEntityType type;
+	while( input.good() ) {
+		getline( input, line );
+		if( !line.empty() && line.back() == '\r' ) {
+			line.pop_back();
+		}
+		if( line.empty() ) {
+			continue;
+		}
+		if( !parseLine( line, text, type ) ) {
+			input.clear();
+			input.setstate( ios::failbit );
+			break;
+		}
+		addToken( text, type );
+	}
+	if( !input.eof() && input.fail() ) {
+		throw new CException( "Bad crf tested file '"
+			+ crfTestedFilename + "' format" );
+	}
+}
+
+void CConcatenator::startNe( TNamedEntityType type )
+{
+	if( type == NET_None ) {
+		state = &CConcatenator::stateNone;
+		return;
+	}
+
+	neOffset = offset;
+	neToken = token;
+
+	if( type == NET_Org ) {
+		state = &CConcatenator::stateOrg;
+	} else if( type == NET_Loc ) {
+		state = &CConcatenator::stateLoc;
+	} else if( type == NET_Person ) {
+		state = &CConcatenator::statePerson;
+	} else {
+		assert( false );
+	}
+}
+
+void CConcatenator::endNe( TNamedEntityType type, bool ignoreLastWord )
+{
+	assert( neToken != tokens.cend() );
+	if( type == NET_Org ) {
+		output << "ORG";
+	} else if( type == NET_Loc ) {
+		output << "LOC";
+	} else if( type == NET_Person ) {
+		output << "PER";
+	} else {
+		assert( false );
+	}
+	string text;
+
+	auto end = token;
+	do {
+		--end;
+	} while( !IsWord( end->Type ) );
+	if( ignoreLastWord ) {
+		do {
+			--end;
+		} while( !IsWord( end->Type ) );
+	}
+	++end;
+
+	for( auto i = neToken; i != end; ++i ) {
+		if( i->Type == TT_Text || IsWord( i->Type ) ) {
+			text += i->Text;
+		}
+	}
+	output << " " << neOffset << " " << text.length() << " {" << text << "}" << endl;
+	neToken = tokens.cend();
+}
+
+bool CConcatenator::parseLine( const string& line, string& text,
+	TNamedEntityType& type ) const
+{
+	text.clear();
+	type = NET_None;
+
+	string::size_type textEndPos = line.find( '\t' );
+	string::size_type neBeginPos = line.rfind( '\t' );
+
+	if( textEndPos == string::npos || neBeginPos == string::npos ) {
+		return false;
+	}
+
+	text = line.substr( 0, textEndPos );
+	if( text.empty() ) {
+		return false;
+	}
+
+	string typeText = line.substr( neBeginPos + 1 );
+
+	if( typeText == "Org" ) {
+		type = NET_Org;
+	} else if( typeText == "Loc" ) {
+		type = NET_Loc;
+	} else if( typeText == "Person" ) {
+		type = NET_Person;
+	} else if( typeText != "NO" ) {
+		return false;
+	}
+
+	return true;
+}
+
+void CConcatenator::addToken( const string& text, TNamedEntityType type )
+{
+	assert( token != tokens.cend() );
+	assert( IsWordOrMark( token->Type ) );
+	if( text != token->Text ) {
+		throw new CException( "Json or tested file(s) is(are) corrupted" );
+	}
+
+	( this->*state )( type );
+
+	do {
+		AddTokenToOffset( *token, offset );
+		++token;
+	} while( token != tokens.cend() && !IsWordOrMark( token->Type ) );
+}
+
+bool CConcatenator::isSimpleDot() const
+{
+	return ( token->Type == TT_Dot && !token->IsEndOfSentence );
+}
+
+void CConcatenator::stateNone( TNamedEntityType type )
+{
+	startNe( type );
+}
+
+void CConcatenator::stateOrg( TNamedEntityType type )
+{
+	if( type == NET_None ) {
+		if( token->Text == "им" ) { // TODO: compare case insensitive
+			state = &CConcatenator::stateOrgIm;
+		} else if( token->Text == "имени" ) { // TODO: compare case insensitive
+			state = &CConcatenator::stateOrgImeny;
+		} else if( !isSimpleDot() ) {
+			endNe( NET_Org );
+			startNe( type );
+		}
+	} else if( type != NET_Org && !isSimpleDot() ) {
+		endNe( NET_Org );
+		startNe( type );
+	}
+}
+
+void CConcatenator::stateOrgIm( TNamedEntityType type )
+{
+	if( token->Type == TT_Dot ) {
+		state = &CConcatenator::stateOrgImeny;
+	} else {
+		endNe( NET_Org, true );
+		startNe( type );
+	}
+}
+
+void CConcatenator::stateOrgImeny( TNamedEntityType type )
+{
+	if( type != NET_Person ) {
+		endNe( NET_Org, true );
+		startNe( type );
+	} else {
+		state = &CConcatenator::stateOrgImenyPerson;
+	}
+}
+
+void CConcatenator::stateOrgImenyPerson( TNamedEntityType type )
+{
+	if( type != NET_Person && !isSimpleDot() ) {
+		endNe( NET_Org );
+		startNe( type );
+	}
+}
+
+void CConcatenator::stateLoc( TNamedEntityType type )
+{
+	if( type != NET_Loc && !isSimpleDot() ) {
+		endNe( NET_Loc );
+		startNe( type );
+	}
+}
+
+void CConcatenator::statePerson( TNamedEntityType type )
+{
+	if( type != NET_Person && !isSimpleDot() ) {
+		endNe( NET_Person );
+		startNe( type );
+	}
+}
+
+//------------------------------------------------------------------------------
+
 void PrepareSigns( const string& auxFilesPath, const CTokens& tokens )
 {
 	// intialize token signs
@@ -884,14 +1146,7 @@ void PrepareAnswerFile( const char* argv[] )
 {
 	CTokens tokens;
 	ReadTokens( argv[2], tokens );
-	size_t offset = 0;
-	for( auto i = tokens.begin(); i != tokens.end(); ++i ) {
-		if( IsWordOrMark( i->Type ) ) {
-			cout << offset << "\t" << i->Text.length() << "\t"
-				<< i->Text << endl;
-		}
-		AddTokenToOffset( *i, offset );
-	}
+	CConcatenator::Concatenate( argv[3], tokens, cout );
 }
 
 //------------------------------------------------------------------------------
@@ -974,7 +1229,7 @@ int main( int argc, const char* argv[] )
 	try {
 		success = Run( argc, argv );
 	} catch( CException* e ) {
-		cerr << "Error: " << e->Message() << endl;
+		cerr << "Error: " << e->Message() << "." << endl;
 		e->Delete();
 	} catch( exception& e ) {
 		cerr << "Error: std::exception: " << e.what() << endl;
