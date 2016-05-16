@@ -3,6 +3,8 @@ build
 CRF++-0.58
 train-texts
 test-texts
+mystem
+NamedEntityRecognition
 *.exe
 
 ## Ignore train results
