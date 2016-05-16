@@ -978,8 +978,8 @@ void CConcatenator::endNe( TNamedEntityType type, bool ignoreLastWord )
 			text += i->Text;
 		}
 	}
-	output << " " << neOffset << " " << text.length()
-		<< " #{" << text << "}" << endl;
+	output << " " << neOffset << " " << text.length() << endl;
+		//<< " #{" << text << "}" << endl;
 	neToken = tokens.cend();
 }
 
@@ -1031,6 +1031,7 @@ void CConcatenator::addToken( const string& text, TNamedEntityType type )
 	}
 
 	( this->*state )( type );
+	AddTokenToOffset( *token, offset );
 	++token;
 }
 
