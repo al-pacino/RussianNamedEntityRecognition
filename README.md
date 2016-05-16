@@ -40,17 +40,17 @@ A trained model file (model.crf-model) exists in root of the repository.
 
 After running you should have 5 new files for all source text files in the test-texts directory:
 
-1. *.txt.cp1251 - the file contains source text in cp1251 encoding
-2. *.txt.cp1251.json - the file contains the result of processing source text in cp1251 encoding by mystem analyzer
-3. *.txt.cp1251.json.signs - the file contains signs which have been extracted by main program
-4. *.txt.cp1251.json.signs.crf-test - the file contains the result of application crf_test to *.txt.cp1251.json.signs
-5. *.txt.cp1251.answer - the file contains named entities which have been extracted by main program
+1. *.cp1251 - the file contains source text in cp1251 encoding
+2. *.json - the file contains the result of processing source text in cp1251 encoding by mystem analyzer
+3. *.signs - the file contains signs which have been extracted by main program
+4. *.crf-tested - the file contains the result of application crf_test to *.txt.cp1251.json.signs
+5. *.task1 - the file contains named entities which have been extracted by main program
 
-Each line of an answer file has the structure:
-TYPE <one-space> OFFSET <one-space> LENGTH <one-space> #{TEXT}
+Each line of an *.task1 file has the structure:
+TYPE <one-space> OFFSET <one-space> LENGTH
 
 Where:
 - TYPE is one of three named entity types: ORG (organization), LOC (location), PER (person);
 - OFFSET is offset in bytes from the beginning of the file;
 - LENGTH is length of the text of the named entity;
-- TEXT is text of the named entity;
+
